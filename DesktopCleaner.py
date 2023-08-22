@@ -7,6 +7,8 @@ class DesktopCleaner:
 
     def __init__(self):
         self.desktop = "C:/Users/Conno/Desktop"
+        self.excludedFilesList = []
+        self.gamesList = []
 
         self.files = {
             "mp3": "C:/Users/Conno/Desktop/Shortcuts/Music",
@@ -28,47 +30,66 @@ class DesktopCleaner:
     def getFileExtension(self, file):
         return file[-3:]
 
+    # Sets files to be ignored by the cleaner
+    def getExcludedFiles(self):
+
+        with open("excludedFiles.txt") as excludedFiles:
+            for line in excludedFiles:
+                line = line.rstrip("\n")
+                self.excludedFilesList.append(line)
+
+            return set(self.excludedFilesList)
+
     # Returns a set of the users game from the steam api
     def getGames(self):
         games = []
 
         GenerateGames.generateFile(76561198346676755)  # generates users steam games
 
-        with open("steamgames.txt") as f:
-            for line in f:
+        with open("steamgames.txt") as gamesFile:
+            for line in gamesFile:
                 line = line.rstrip("\n")
-                games.append(line)
+                self.gamesList.append(line)
 
-        return set(games)
+        return set(self.gamesList)
 
     # Moves files to their correct location
     def moveFiles(self):
+
+        # Scan files on desktop
         for files in os.walk(self.desktop):
             if files[0] == self.desktop:
 
-                for list in files:
+                # Iterate through list of files on desktop
+                for filesList in files:
 
-                    for file in list:
+                    for file in filesList:
                         cur_path = os.path.join(self.desktop, file)
                         file_extension = self.getFileExtension(file)
-                        print(file, file[:-4])
+                        fileName = file[:4]  # remove last 4 chars from string
 
-                        if file_extension in self.files and file[:-4] not in self.getGames():
-                            new_path = os.path.join(self.desktop, self.files[file_extension]) # Create a path from the desktop + the file extension path
+                        # if extension in dict and filename not in games and file not excluded, add to correct file
+                        if file_extension in self.files and fileName not in self.getGames() \
+                                and file not in self.getExcludedFiles():
+
+                            new_path = os.path.join(self.desktop, self.files[
+                                file_extension])  # Create a path from the desktop + the file extension path
                             shutil.move(cur_path, new_path)
                             print(f"Moved '{file}' to '{new_path}'")
 
-                        elif file_extension in self.files and file[:-4] in self.getGames():
+                        # If extension in dict, and filename in games list and file not excluded from cleaning, then add to 'games' folder
+                        elif file_extension in self.files and fileName in self.getGames() \
+                                and file not in self.getExcludedFiles():
+
                             new_path = "C:/Users/Conno/Desktop/Shortcuts/Games"
                             shutil.move(cur_path, new_path)
                             print(f"Moved '{file}' to '{new_path}'")
-                        elif len(file) >3 and file != "Shortcuts":
+
+                        # If a file and not the shortcuts folder and file not excluded from cleaning, then add to 'other' folder
+                        elif len(file) > 3 and file != "Shortcuts" and file not in self.getExcludedFiles():
                             new_path = "C:/Users/Conno/Desktop/Shortcuts/Other"
                             shutil.move(cur_path, new_path)
                             print(f"Moved '{file}' to '{new_path}'")
-
-
-
 
 
 d = DesktopCleaner()
